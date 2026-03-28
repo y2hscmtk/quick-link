@@ -1,0 +1,8 @@
+.DS_Store
+.claude/
+dist/
+node_modules/
+node_modules_backup/
+package-lock.backup.json
+dist.zip
+*.log

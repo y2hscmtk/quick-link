@@ -1,0 +1,114 @@
+:root {
+  color-scheme: light;
+  font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 40%),
+    linear-gradient(160deg, #f4efe6 0%, #e8f0ff 45%, #f6f7fb 100%);
+  color: #1f2937;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.app__panel {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+}
+
+.app__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #172554;
+  color: #eff6ff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app__title {
+  margin: 16px 0 12px;
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.app__description {
+  margin: 0;
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.app__callout {
+  margin-top: 20px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff7ed 0%, #fefce8 100%);
+  border: 1px solid rgba(251, 146, 60, 0.22);
+}
+
+.app__callout strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.app__callout p {
+  margin: 0;
+  color: #7c2d12;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.app__grid {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.app__card {
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(248, 250, 252, 0.94);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.app__card h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.app__card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #475569;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.55;
+}

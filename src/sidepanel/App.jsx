@@ -21,8 +21,13 @@ function App() {
   return (
     <main className="app">
       <section className="app__panel">
-        <span className="app__eyebrow">QuickLink</span>
-        <h1 className="app__title">퀵링크</h1>
+        <header className="app__brand">
+          <img className="app__logo" src="/icons/logo-mark.png" alt="퀵링크 로고" />
+          <div className="app__brand-copy">
+            <span className="app__eyebrow">QuickLink</span>
+            <h1 className="app__title">퀵링크</h1>
+          </div>
+        </header>
         <p className="app__description">
           그룹별 바로가기 링크를 우측 패널에서 관리하는 새 확장 프로그램을 위한 기본 메타데이터와
           최소 구조만 준비해 둔 상태다.

@@ -1,10 +1,8 @@
 :root {
   color-scheme: light;
   font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 40%),
-    linear-gradient(160deg, #f4efe6 0%, #e8f0ff 45%, #f6f7fb 100%);
-  color: #1f2937;
+  background: #f7f7f5;
+  color: #111111;
 }
 
 * {
@@ -19,22 +17,41 @@ body,
 
 body {
   margin: 0;
+  background: #f7f7f5;
 }
 
 .app {
   min-height: 100vh;
-  padding: 20px;
+  padding: 24px;
 }
 
 .app__panel {
   max-width: 420px;
   margin: 0 auto;
   padding: 24px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  border: 1px solid rgba(17, 17, 17, 0.09);
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(17, 17, 17, 0.05);
+}
+
+.app__brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.app__brand-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.app__logo {
+  width: 84px;
+  height: 84px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .app__eyebrow {
@@ -42,8 +59,9 @@ body {
   align-items: center;
   padding: 6px 10px;
   border-radius: 999px;
-  background: #172554;
-  color: #eff6ff;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  background: #111111;
+  color: #ffffff;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -51,15 +69,15 @@ body {
 }
 
 .app__title {
-  margin: 16px 0 12px;
+  margin: 12px 0 0;
   font-size: 30px;
   line-height: 1.15;
   letter-spacing: -0.03em;
 }
 
 .app__description {
-  margin: 0;
-  color: #475569;
+  margin: 18px 0 0;
+  color: #4b4b4b;
   font-size: 15px;
   line-height: 1.65;
 }
@@ -68,8 +86,8 @@ body {
   margin-top: 20px;
   padding: 16px 18px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #fff7ed 0%, #fefce8 100%);
-  border: 1px solid rgba(251, 146, 60, 0.22);
+  background: #fafaf9;
+  border: 1px solid rgba(17, 17, 17, 0.08);
 }
 
 .app__callout strong {
@@ -80,7 +98,7 @@ body {
 
 .app__callout p {
   margin: 0;
-  color: #7c2d12;
+  color: #4b4b4b;
   font-size: 14px;
   line-height: 1.6;
 }
@@ -94,8 +112,8 @@ body {
 .app__card {
   padding: 18px;
   border-radius: 18px;
-  background: rgba(248, 250, 252, 0.94);
-  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: #ffffff;
+  border: 1px solid rgba(17, 17, 17, 0.08);
 }
 
 .app__card h2 {
@@ -106,7 +124,7 @@ body {
 .app__card ul {
   margin: 0;
   padding-left: 18px;
-  color: #475569;
+  color: #4b4b4b;
   display: grid;
   gap: 8px;
   font-size: 14px;

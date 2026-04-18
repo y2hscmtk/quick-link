@@ -101,3 +101,16 @@ export function FolderKanban({ size }) {
     </IconBase>
   );
 }
+
+export function GripVertical({ size }) {
+  return (
+    <IconBase size={size}>
+      <path d="M10 6h.01" />
+      <path d="M10 12h.01" />
+      <path d="M10 18h.01" />
+      <path d="M14 6h.01" />
+      <path d="M14 12h.01" />
+      <path d="M14 18h.01" />
+    </IconBase>
+  );
+}

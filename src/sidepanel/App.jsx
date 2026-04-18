@@ -4,6 +4,7 @@ import {
   ChevronRight,
   ExternalLink,
   FolderKanban,
+  GripVertical,
   PencilLine,
   Plus,
   Search,
@@ -13,6 +14,10 @@ import {
 import { buildShortcut, getHostnameLabel, openShortcut } from '../lib/shortcuts.js';
 import { createEmptyGroup, loadGroups, saveGroups, STORAGE_KEY } from '../lib/storage.js';
 
+function joinClasses(...tokens) {
+  return tokens.filter(Boolean).join(' ');
+}
+
 function getSearchableText(item, groupName = '') {
   return `${item.title} ${item.url} ${groupName}`.toLowerCase();
 }
@@ -20,6 +25,54 @@ function getSearchableText(item, groupName = '') {
 function getInitialLabel(item) {
   const hostInitial = getHostnameLabel(item.url).slice(0, 1).toUpperCase();
   return hostInitial || item.title.slice(0, 1).toUpperCase() || 'L';
+}
+
+function getDropPosition(event) {
+  const bounds = event.currentTarget.getBoundingClientRect();
+  return event.clientY <= bounds.top + bounds.height / 2 ? 'before' : 'after';
+}
+
+function getDropPositionFromRect(clientY, bounds) {
+  return clientY <= bounds.top + bounds.height / 2 ? 'before' : 'after';
+}
+
+function setDragPreview(event, selector) {
+  const previewElement = event.currentTarget.closest(selector);
+
+  if (!previewElement || typeof event.dataTransfer?.setDragImage !== 'function') {
+    return;
+  }
+
+  const bounds = previewElement.getBoundingClientRect();
+  const offsetX = Math.min(Math.max(event.clientX - bounds.left, 16), Math.max(bounds.width - 16, 16));
+  const offsetY = Math.min(Math.max(event.clientY - bounds.top, 16), Math.max(bounds.height - 16, 16));
+
+  event.dataTransfer.setDragImage(previewElement, offsetX, offsetY);
+}
+
+function reorderEntries(entries, sourceId, targetId, position) {
+  if (sourceId === targetId) {
+    return entries;
+  }
+
+  const sourceIndex = entries.findIndex((entry) => entry.id === sourceId);
+  const targetIndex = entries.findIndex((entry) => entry.id === targetId);
+
+  if (sourceIndex < 0 || targetIndex < 0) {
+    return entries;
+  }
+
+  const nextEntries = [...entries];
+  const [movedEntry] = nextEntries.splice(sourceIndex, 1);
+  const targetIndexAfterRemoval = nextEntries.findIndex((entry) => entry.id === targetId);
+
+  if (!movedEntry || targetIndexAfterRemoval < 0) {
+    return entries;
+  }
+
+  const insertIndex = position === 'after' ? targetIndexAfterRemoval + 1 : targetIndexAfterRemoval;
+  nextEntries.splice(insertIndex, 0, movedEntry);
+  return nextEntries;
 }
 
 function ShortcutForm({ initialValue, submitLabel, onCancel, onSubmit }) {
@@ -40,9 +93,7 @@ function ShortcutForm({ initialValue, submitLabel, onCancel, onSubmit }) {
       onSubmit({ title, url });
       setError('');
     } catch (submitError) {
-      setError(
-        submitError instanceof Error ? submitError.message : '입력값을 다시 확인해 주세요.',
-      );
+      setError(submitError instanceof Error ? submitError.message : 'Please check the form values.');
     }
   };
 
@@ -126,7 +177,7 @@ function ModalShell({ title, subtitle, onClose, children }) {
             <h2 id="modal-title">{title}</h2>
             {subtitle ? <p>{subtitle}</p> : null}
           </div>
-          <button className="mini-icon-button" type="button" onClick={onClose} aria-label="닫기">
+          <button className="mini-icon-button" type="button" onClick={onClose} aria-label="Close modal">
             <X size={14} />
           </button>
         </header>
@@ -136,22 +187,65 @@ function ModalShell({ title, subtitle, onClose, children }) {
   );
 }
 
-function ShortcutCard({ item, groupId, onOpenItem, onEdit, onDelete }) {
+function ShortcutCard({
+  item,
+  groupId,
+  dragDisabled,
+  dragState,
+  dragTarget,
+  onDelete,
+  onEdit,
+  onItemDragEnd,
+  onItemDragOver,
+  onItemDragStart,
+  onItemDrop,
+  onOpenItem,
+}) {
+  const isDragging = dragState?.type === 'item' && dragState.groupId === groupId && dragState.id === item.id;
+  const dropPosition =
+    dragTarget?.type === 'item' && dragTarget.groupId === groupId && dragTarget.id === item.id
+      ? dragTarget.position
+      : null;
+  const handleLabel = dragDisabled ? 'Clear the search to reorder links' : 'Drag to reorder link';
+
   return (
     <article
-      className="link-card"
+      className={joinClasses(
+        'link-card',
+        isDragging && 'is-dragging',
+        dropPosition && `is-drop-${dropPosition}`,
+      )}
       role="link"
       tabIndex={0}
       onClick={() => {
-        void onOpenItem(groupId, item);
+        void onOpenItem(item);
       }}
+      onDragOver={(event) => onItemDragOver(event, groupId, item.id)}
+      onDrop={(event) => onItemDrop(event, groupId, item.id)}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          void onOpenItem(groupId, item);
+          void onOpenItem(item);
         }
       }}
     >
+      <button
+        className={joinClasses(
+          'drag-handle-button',
+          'drag-edge-button',
+          isDragging && 'is-active',
+          dragDisabled && 'is-disabled',
+        )}
+        type="button"
+        draggable={!dragDisabled}
+        onClick={(event) => event.stopPropagation()}
+        onDragEnd={onItemDragEnd}
+        onDragStart={(event) => onItemDragStart(event, groupId, item.id)}
+        aria-label={handleLabel}
+        title={handleLabel}
+      >
+        <GripVertical size={14} />
+      </button>
       <div className="link-card-leading">
         <span className="link-icon">{getInitialLabel(item)}</span>
       </div>
@@ -167,7 +261,7 @@ function ShortcutCard({ item, groupId, onOpenItem, onEdit, onDelete }) {
             event.stopPropagation();
             onEdit();
           }}
-          aria-label="링크 수정"
+          aria-label="Edit link"
         >
           <PencilLine size={13} />
         </button>
@@ -178,7 +272,7 @@ function ShortcutCard({ item, groupId, onOpenItem, onEdit, onDelete }) {
             event.stopPropagation();
             onDelete();
           }}
-          aria-label="링크 삭제"
+          aria-label="Delete link"
         >
           <Trash2 size={13} />
         </button>
@@ -191,28 +285,62 @@ function ShortcutCard({ item, groupId, onOpenItem, onEdit, onDelete }) {
 }
 
 function GroupSection({
+  dragDisabled,
+  dragState,
+  dragTarget,
   group,
   items,
-  searchActive,
-  onToggleGroup,
-  onRenameGroup,
   onDeleteGroup,
   onDeleteItem,
+  onGroupPointerStart,
+  onItemDragEnd,
+  onItemDragOver,
+  onItemDragStart,
+  onItemDrop,
+  onOpenItem,
+  onRenameGroup,
   onRequestAddItem,
   onRequestEditItem,
-  onOpenItem,
+  onToggleGroup,
+  searchActive,
 }) {
   const [renaming, setRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState(group.name);
   const expanded = searchActive || !group.collapsed;
+  const isDraggingGroup = dragState?.type === 'group' && dragState.id === group.id;
+  const groupDropPosition =
+    dragTarget?.type === 'group' && dragTarget.id === group.id ? dragTarget.position : null;
+  const groupHandleLabel = dragDisabled ? 'Clear the search to reorder groups' : 'Drag to reorder group';
 
   useEffect(() => {
     setNameDraft(group.name);
   }, [group.name]);
 
   return (
-    <section className="group-section">
+    <section
+      className={joinClasses(
+        'group-section',
+        isDraggingGroup && 'is-dragging',
+        groupDropPosition && `is-drop-${groupDropPosition}`,
+      )}
+      data-group-drop-id={group.id}
+    >
       <div className="group-row">
+        <button
+          className={joinClasses(
+            'drag-handle-button',
+            'drag-edge-button',
+            isDraggingGroup && 'is-active',
+            dragDisabled && 'is-disabled',
+          )}
+          type="button"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => onGroupPointerStart(event, group.id)}
+          aria-label={groupHandleLabel}
+          title={groupHandleLabel}
+        >
+          <GripVertical size={14} />
+        </button>
         <div className="group-label-button">
           <FolderKanban size={14} />
           {renaming ? (
@@ -248,7 +376,7 @@ function GroupSection({
             className="mini-icon-button"
             type="button"
             onClick={() => onRequestAddItem(group.id)}
-            aria-label="링크 추가"
+            aria-label="Add link"
           >
             <Plus size={13} />
           </button>
@@ -256,7 +384,7 @@ function GroupSection({
             className="mini-icon-button"
             type="button"
             onClick={() => setRenaming((current) => !current)}
-            aria-label="그룹 이름 수정"
+            aria-label="Rename group"
           >
             <PencilLine size={13} />
           </button>
@@ -264,7 +392,7 @@ function GroupSection({
             className="mini-icon-button"
             type="button"
             onClick={() => onDeleteGroup(group.id)}
-            aria-label="그룹 삭제"
+            aria-label="Delete group"
           >
             <Trash2 size={13} />
           </button>
@@ -272,7 +400,7 @@ function GroupSection({
             className="mini-icon-button"
             type="button"
             onClick={() => onToggleGroup(group.id)}
-            aria-label={expanded ? '그룹 접기' : '그룹 펼치기'}
+            aria-label={expanded ? 'Collapse group' : 'Expand group'}
           >
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
@@ -287,9 +415,16 @@ function GroupSection({
                 key={item.id}
                 item={item}
                 groupId={group.id}
+                dragDisabled={dragDisabled}
+                dragState={dragState}
+                dragTarget={dragTarget}
                 onOpenItem={onOpenItem}
                 onEdit={() => onRequestEditItem(group.id, item.id)}
                 onDelete={() => onDeleteItem(group.id, item.id)}
+                onItemDragEnd={onItemDragEnd}
+                onItemDragOver={onItemDragOver}
+                onItemDragStart={onItemDragStart}
+                onItemDrop={onItemDrop}
               />
             ))
           ) : (
@@ -315,8 +450,12 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [dialog, setDialog] = useState(null);
+  const [dragState, setDragState] = useState(null);
+  const [dragTarget, setDragTarget] = useState(null);
+  const [groupPointerDrag, setGroupPointerDrag] = useState(null);
   const searchInputRef = useRef(null);
   const deferredQuery = useDeferredValue(query.trim().toLowerCase());
+  const searchActive = Boolean(deferredQuery);
   const appVersion = chrome.runtime?.getManifest?.().version ?? '0.1.0';
 
   useEffect(() => {
@@ -386,6 +525,42 @@ export default function App() {
     };
   }, [dialog]);
 
+  useEffect(() => {
+    if (!searchActive) {
+      return;
+    }
+
+    setDragState(null);
+    setDragTarget(null);
+    setGroupPointerDrag(null);
+  }, [searchActive]);
+
+  const clearDragState = () => {
+    setDragState(null);
+    setDragTarget(null);
+    setGroupPointerDrag(null);
+  };
+
+  const getGroupDropTarget = (clientX, clientY, sourceGroupId) => {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    const element = document.elementFromPoint(clientX, clientY);
+    const dropZone = element?.closest?.('[data-group-drop-id]');
+    const targetGroupId = dropZone?.getAttribute?.('data-group-drop-id');
+
+    if (!targetGroupId || targetGroupId === sourceGroupId) {
+      return null;
+    }
+
+    const bounds = dropZone.getBoundingClientRect();
+    return {
+      id: targetGroupId,
+      position: getDropPositionFromRect(clientY, bounds),
+    };
+  };
+
   const visibleGroups = groups
     .map((group) => {
       if (!deferredQuery) {
@@ -448,7 +623,7 @@ export default function App() {
       return;
     }
 
-    const confirmed = window.confirm(`"${targetGroup.name}" 그룹을 삭제할까요?`);
+    const confirmed = window.confirm(`Delete the "${targetGroup.name}" group?`);
 
     if (!confirmed) {
       return;
@@ -500,11 +675,154 @@ export default function App() {
     );
   };
 
-  const handleOpenItem = async (_groupId, item) => {
+  const handleMoveGroup = (sourceGroupId, targetGroupId, position) => {
+    setGroups((current) => reorderEntries(current, sourceGroupId, targetGroupId, position));
+    clearDragState();
+  };
+
+  const handleMoveItem = (groupId, sourceItemId, targetItemId, position) => {
+    setGroups((current) =>
+      current.map((group) => {
+        if (group.id !== groupId) {
+          return group;
+        }
+
+        const nextItems = reorderEntries(group.items, sourceItemId, targetItemId, position);
+        return nextItems === group.items ? group : { ...group, items: nextItems };
+      }),
+    );
+    clearDragState();
+  };
+
+  useEffect(() => {
+    if (!groupPointerDrag) {
+      return undefined;
+    }
+
+    const handlePointerMove = (event) => {
+      setGroupPointerDrag((current) =>
+        current
+          ? {
+              ...current,
+              x: event.clientX,
+              y: event.clientY,
+            }
+          : current,
+      );
+
+      const nextTarget = getGroupDropTarget(event.clientX, event.clientY, groupPointerDrag.id);
+      setDragTarget(nextTarget ? { type: 'group', ...nextTarget } : null);
+    };
+
+    const handlePointerEnd = (event) => {
+      const nextTarget = getGroupDropTarget(event.clientX, event.clientY, groupPointerDrag.id);
+
+      if (nextTarget) {
+        handleMoveGroup(groupPointerDrag.id, nextTarget.id, nextTarget.position);
+        return;
+      }
+
+      clearDragState();
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerEnd);
+    window.addEventListener('pointercancel', handlePointerEnd);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerEnd);
+      window.removeEventListener('pointercancel', handlePointerEnd);
+    };
+  }, [groupPointerDrag?.id]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return undefined;
+    }
+
+    document.body.classList.toggle('is-group-sorting', Boolean(groupPointerDrag));
+
+    return () => {
+      document.body.classList.remove('is-group-sorting');
+    };
+  }, [Boolean(groupPointerDrag)]);
+
+  const handleGroupPointerStart = (event, groupId) => {
+    if (searchActive || event.button !== 0) {
+      return;
+    }
+
+    const activeGroup = groups.find((group) => group.id === groupId);
+
+    if (!activeGroup) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    setDragState({ type: 'group', id: groupId });
+    setDragTarget(null);
+    setGroupPointerDrag({
+      id: groupId,
+      name: activeGroup.name,
+      count: activeGroup.items.length,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  };
+
+  const handleItemDragStart = (event, groupId, itemId) => {
+    if (searchActive) {
+      event.preventDefault();
+      return;
+    }
+
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', itemId);
+    setDragPreview(event, '.link-card');
+    setDragState({ type: 'item', groupId, id: itemId });
+    setDragTarget(null);
+  };
+
+  const handleItemDragOver = (event, groupId, itemId) => {
+    if (dragState?.type !== 'item' || dragState.groupId !== groupId) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (dragState.id === itemId) {
+      setDragTarget(null);
+      return;
+    }
+
+    const position = getDropPosition(event);
+    event.dataTransfer.dropEffect = 'move';
+    setDragTarget((current) =>
+      current?.type === 'item' &&
+      current.groupId === groupId &&
+      current.id === itemId &&
+      current.position === position
+        ? current
+        : { type: 'item', groupId, id: itemId, position },
+    );
+  };
+
+  const handleItemDrop = (event, groupId, itemId) => {
+    if (dragState?.type !== 'item' || dragState.groupId !== groupId) {
+      return;
+    }
+
+    event.preventDefault();
+    handleMoveItem(groupId, dragState.id, itemId, getDropPosition(event));
+  };
+
+  const handleOpenItem = async (item) => {
     try {
       await openShortcut(item.url);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : '링크를 열지 못했습니다.');
+      window.alert(error instanceof Error ? error.message : 'Could not open the link.');
     }
   };
 
@@ -523,14 +841,14 @@ export default function App() {
     <main className="app-shell">
       <header className="panel-header">
         <div className="brand-copy">
-          <span className="brand-title">Digital Curator</span>
+          <span className="brand-title">Quick Link</span>
         </div>
         <div className="panel-header-actions">
           <button
             className="header-icon-button"
             type="button"
             onClick={() => searchInputRef.current?.focus()}
-            aria-label="검색 포커스"
+            aria-label="Focus search"
           >
             <Search size={15} />
           </button>
@@ -538,7 +856,7 @@ export default function App() {
             className="header-icon-button is-primary"
             type="button"
             onClick={() => setDialog({ type: 'createGroup' })}
-            aria-label="새 그룹"
+            aria-label="Create group"
           >
             <Plus size={15} />
           </button>
@@ -582,7 +900,10 @@ export default function App() {
               key={group.id}
               group={group}
               items={items}
-              searchActive={Boolean(deferredQuery)}
+              dragDisabled={searchActive}
+              dragState={dragState}
+              dragTarget={dragTarget}
+              searchActive={searchActive}
               onToggleGroup={handleToggleGroup}
               onRenameGroup={handleRenameGroup}
               onDeleteGroup={handleDeleteGroup}
@@ -590,10 +911,31 @@ export default function App() {
               onRequestAddItem={(groupId) => setDialog({ type: 'createLink', groupId })}
               onRequestEditItem={(groupId, itemId) => setDialog({ type: 'editLink', groupId, itemId })}
               onOpenItem={handleOpenItem}
+              onGroupPointerStart={handleGroupPointerStart}
+              onItemDragEnd={clearDragState}
+              onItemDragOver={handleItemDragOver}
+              onItemDragStart={handleItemDragStart}
+              onItemDrop={handleItemDrop}
             />
           ))
         )}
       </section>
+
+      {groupPointerDrag ? (
+        <div
+          className="group-drag-overlay"
+          style={{
+            transform: `translate(${groupPointerDrag.x + 16}px, ${groupPointerDrag.y + 16}px)`,
+          }}
+        >
+          <div className="group-drag-preview">
+            <GripVertical size={14} />
+            <FolderKanban size={14} />
+            <span className="group-drag-preview-name">{groupPointerDrag.name}</span>
+            <span className="group-badge">{groupPointerDrag.count}</span>
+          </div>
+        </div>
+      ) : null}
 
       <footer className="panel-footer">
         <span>Quick Link</span>
@@ -601,11 +943,7 @@ export default function App() {
       </footer>
 
       {dialog?.type === 'createGroup' ? (
-        <ModalShell
-          title="Create group"
-          subtitle="새 그룹을 만들고 링크를 정리하세요."
-          onClose={() => setDialog(null)}
-        >
+        <ModalShell title="Create group" onClose={() => setDialog(null)}>
           <GroupForm
             initialValue=""
             submitLabel="Create"
@@ -616,11 +954,7 @@ export default function App() {
       ) : null}
 
       {dialog?.type === 'createLink' && activeGroup ? (
-        <ModalShell
-          title="Add link"
-          subtitle={`${activeGroup.name} 그룹에 새 링크를 추가합니다.`}
-          onClose={() => setDialog(null)}
-        >
+        <ModalShell title="Add link" onClose={() => setDialog(null)}>
           <ShortcutForm
             initialValue={{ title: '', url: '' }}
             submitLabel="Add link"
@@ -634,11 +968,7 @@ export default function App() {
       ) : null}
 
       {dialog?.type === 'editLink' && activeGroup && activeItem ? (
-        <ModalShell
-          title="Edit link"
-          subtitle={`${activeGroup.name} 그룹의 링크를 수정합니다.`}
-          onClose={() => setDialog(null)}
-        >
+        <ModalShell title="Edit link" onClose={() => setDialog(null)}>
           <ShortcutForm
             initialValue={{ title: activeItem.title, url: activeItem.url }}
             submitLabel="Save"

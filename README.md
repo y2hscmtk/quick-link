@@ -1,19 +1,19 @@
-# 퀵링크
+# Quick Link
 
-`퀵링크`는 우측 사이드 패널에서 그룹별 바로가기 링크를 관리하는 Chrome 확장 프로그램이다.
+`Quick Link` is a Chrome extension that manages grouped shortcut links from the right-side panel.
 
-현재 구현된 범위는 다음과 같다.
+The current implementation includes:
 
-- React 기반 우측 사이드패널 UI
-- 그룹 생성, 이름 수정, 접기/펼치기, 삭제
-- 링크 생성, 수정, 삭제, 검색
-- `chrome.storage.local` 기반 저장/동기화
-- 링크 클릭 시 현재 탭 이동
-- 확장 프로그램 아이콘 클릭 시 사이드패널 열기/닫기
+- React-based side panel UI
+- Group create, rename, collapse/expand, delete, and reorder
+- Link create, edit, delete, search, and reorder within each group
+- Persistence and synchronization with `chrome.storage.local`
+- Open a link in the current tab when clicked
+- Toggle the side panel when the extension action icon is clicked
 
-## 구조
+## Structure
 
-- `src/sidepanel`: 퀵링크 패널 UI 및 상호작용
-- `src/lib`: 링크/스토리지 유틸리티
-- `src/background/index.js`: 액션 아이콘 클릭 시 사이드패널 토글
-- `public/manifest.json`: 확장 프로그램 메타데이터
+- `src/sidepanel`: Quick Link panel UI and interactions
+- `src/lib`: Link and storage utilities
+- `src/background/index.js`: Toggles the side panel when the action icon is clicked
+- `public/manifest.json`: Extension metadata

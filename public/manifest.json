@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "퀵링크",
-  "description": "우측 패널에서 그룹과 링크를 생성, 검색, 수정, 삭제할 수 있는 Chrome 확장 프로그램.",
+  "name": "Quick Link",
+  "description": "Chrome extension for creating, searching, and managing bookmarks in groups.",
   "version": "0.1.0",
   "permissions": [
     "sidePanel",
@@ -13,7 +13,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "퀵링크 패널 토글",
+    "default_title": "Open Quick Link panel",
     "default_icon": {
       "16": "icons/icon_16x16.png",
       "32": "icons/icon_32x32.png"

@@ -10,7 +10,7 @@ export function normalizeUrl(input) {
   const trimmed = input.trim();
 
   if (!trimmed) {
-    throw new Error('링크 주소를 입력해 주세요.');
+    throw new Error('Enter a link URL.');
   }
 
   const withProtocol = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(trimmed)
@@ -20,7 +20,7 @@ export function normalizeUrl(input) {
   const url = new URL(withProtocol);
 
   if (!['http:', 'https:'].includes(url.protocol)) {
-    throw new Error('http 또는 https 링크만 저장할 수 있습니다.');
+    throw new Error('Only http and https URLs can be saved.');
   }
 
   return url.toString();
